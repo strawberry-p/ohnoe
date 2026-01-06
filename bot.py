@@ -6,6 +6,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 dotenv.load_dotenv()
 DATA_FILE = "bot-data.json"
 lastSubmitName = ""
+submitCounter = 0
 try:
     with open("bot-data.json") as file:
         stored = json.load(file)
@@ -136,7 +137,8 @@ def message_alt_lock_in(message,say):
 
 @app.action("submit_button-action")
 def action_submit(ack, body, logger):
-    global nextDate,nextTime,nextLabel,lastSubmitName,stored,data
+    global nextDate,nextTime,nextLabel,lastSubmitName,stored,data,submitCounter
+    submitCounter += 1
     ack()
     print("submit "+str(body["state"]["values"]))
     print(body.get('value',"no value in submit button"))
@@ -152,10 +154,10 @@ def action_submit(ack, body, logger):
     print(f"body length {len(str(body))}")
     print(body["trigger_id"])
     if nextLabel == lastSubmitName:
-        print('deduped')
+        print(f'deduped {body["trigger_id"]}')
     else:
         data.append(obj)
-        stored["data"].append(obj)
+        stored["data"] = data
         if not (body["user"]["id"] in stored["users"]):
             stored["users"].append(body["user"]["id"])
         lastSubmitName = nextLabel
@@ -168,6 +170,7 @@ def action_submit(ack, body, logger):
                 print(_)
                 print(stored)
                 print(data)
+    print(f"counter {submitCounter}")
     nextDate,nextTime,nextLabel = (0,0,0)
     splitDate = []
     splitTime = []
