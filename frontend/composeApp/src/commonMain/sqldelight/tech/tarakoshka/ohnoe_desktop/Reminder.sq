@@ -11,7 +11,8 @@ VALUES (?, ?);
 
 getAllReminders:
 SELECT *
-FROM Reminder;
+FROM Reminder
+ORDER BY time;
 
 completeReminder:
 UPDATE Reminder

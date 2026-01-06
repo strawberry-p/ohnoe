@@ -4,17 +4,21 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
 import androidx.compose.material3.OutlinedTextField
@@ -29,6 +33,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import tech.tarakoshka.ohnoedesktop.Reminder
 import java.text.SimpleDateFormat
 import java.time.LocalDate
@@ -49,8 +54,7 @@ fun main() = application {
 
     Window(onCloseRequest = ::exitApplication, title = "Ohnoe") {
         MaterialTheme {
-            Row(modifier = Modifier.padding(16.dp)) {
-
+            Row(modifier = Modifier.padding(horizontal = 16.dp)) {
                 var text by remember { mutableStateOf("") }
                 var date by remember { mutableStateOf("") }
                 val dateValidation by derivedStateOf {
@@ -92,65 +96,72 @@ fun main() = application {
                     return@derivedStateOf Pair(true, "")
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { text = it },
-                        label = { Text("Reminder content") },
-                        shape = RectangleShape,
-                        minLines = 3,
-                        modifier = Modifier.width(IntrinsicSize.Min)
-                    )
-                    OutlinedTextField(
-                        value = date,
-                        onValueChange = { newVal: String ->
-                            if (newVal.all(Char::isDigit) && newVal.length <= 8) {
-                                date = newVal
-                            }
-                        },
-                        isError = !dateValidation.first,
-                        supportingText = {
-                            AnimatedVisibility(!dateValidation.first) {
-                                Text(dateValidation.second)
-                            }
-                        },
-                        visualTransformation = DateTransformation(),
-                        placeholder = { Text("dd/mm/yyyy") },
-                        label = { Text("Date") },
-                        singleLine = true,
-                        shape = RectangleShape
-                    )
-                    OutlinedTextField(
-                        value = time,
-                        onValueChange = { newVal: String ->
-                            if (newVal.all(Char::isDigit) && newVal.length <= 4) {
-                                time = newVal
-                            }
-                        },
-                        isError = !timeValidation.first,
-                        supportingText = {
-                            AnimatedVisibility(!timeValidation.first) {
-                                Text(timeValidation.second)
-                            }
-                        },
-                        visualTransformation = TimeTransformation(),
-                        placeholder = { Text("hh:mm") },
-                        label = { Text("Time") },
-                        singleLine = true,
-                        shape = RectangleShape
-                    )
-                    Button(enabled = dateValidation.first && timeValidation.first && text.isNotBlank(), onClick = {
-                        repository.addReminder(
-                            text, SimpleDateFormat("ddMMyyyyhhmm").parse(date + time).toInstant().toEpochMilli()
+                LazyColumn(contentPadding = PaddingValues(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.widthIn(max = 256.dp)) {
+                    item {
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = { text = it },
+                            label = { Text("Reminder content") },
+                            shape = RectangleShape,
+                            minLines = 3,
                         )
-                    }, shape = RectangleShape) {
-                        Text("Add reminder")
+                    }
+                    item {
+                        OutlinedTextField(
+                            value = date,
+                            onValueChange = { newVal: String ->
+                                if (newVal.all(Char::isDigit) && newVal.length <= 8) {
+                                    date = newVal
+                                }
+                            },
+                            isError = !dateValidation.first,
+                            supportingText = {
+                                AnimatedVisibility(!dateValidation.first) {
+                                    Text(dateValidation.second)
+                                }
+                            },
+                            visualTransformation = DateTransformation(),
+                            placeholder = { Text("dd/mm/yyyy") },
+                            label = { Text("Date") },
+                            singleLine = true,
+                            shape = RectangleShape
+                        )
+                    }
+                    item {
+                        OutlinedTextField(
+                            value = time,
+                            onValueChange = { newVal: String ->
+                                if (newVal.all(Char::isDigit) && newVal.length <= 4) {
+                                    time = newVal
+                                }
+                            },
+                            isError = !timeValidation.first,
+                            supportingText = {
+                                AnimatedVisibility(!timeValidation.first) {
+                                    Text(timeValidation.second)
+                                }
+                            },
+                            visualTransformation = TimeTransformation(),
+                            placeholder = { Text("hh:mm") },
+                            label = { Text("Time") },
+                            singleLine = true,
+                            shape = RectangleShape
+                        )
+                    }
+                    item {
+                        Button(enabled = dateValidation.first && date.length == 8 && timeValidation.first && time.length == 4 && text.isNotBlank(), onClick = {
+                            repository.addReminder(
+                                text, SimpleDateFormat("ddMMyyyyhhmm").parse(date + time).toInstant().toEpochMilli()
+                            )
+                        }, shape = RectangleShape) {
+                            Text("Add reminder")
+                        }
                     }
                 }
 
                 VerticalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-                LazyColumn(modifier = Modifier.weight(1f)) {
+                LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 16.dp)) {
                     items(reminders) { r ->
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
