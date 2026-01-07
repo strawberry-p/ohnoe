@@ -10,7 +10,7 @@ def get_embarassing_message(text):
     response = client.models.generate_content(model="gemini-2.5-flash", contents="Write three completely independent derogatory, witty, and mocking sentences in first person about how you didn't manage to complete this task separated by semicolon with no extra spacing: \"$text\". If the text provided is not a humanly possible task, answer \"INCORRECT\"".replace('"$text"', text))
     return response.text
 
-def check_image(image_bytes):
+def check_image(image_bytes, task):
     response = client.models.generate_content(
       model='gemini-2.5-flash',
       contents=[
@@ -18,12 +18,12 @@ def check_image(image_bytes):
           data=image_bytes,
           mime_type='image/jpeg',
         ),
-        '''You are a visual task validator.
+        f'''You are a visual task validator.
 You will be given one image intended to show the current state of a task.
 
 Your goal is to decide whether the task is certainly not complete, or whether the image is unrelated.
 
-The task's name is "eat a sandwitch".
+The task's name is "{task}".
 
 Rules:
 
