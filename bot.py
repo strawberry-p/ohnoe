@@ -23,7 +23,7 @@ THREAT = [["just kill you.", "let you sleep with the fishes.", "make you sleep f
           "eat your RAM", "bend your CPU's pins", "oxidize your SSD's contacts", "make it impossible for you to get a job."],
           ["straighten out your clothes with a soldering iron", "spray cheap perfume all over your clothes",\
           "pop your circuit breakers", "log you out of all the websites you use", "make sure both sides of your pillow will be lukewarm tonight."]]
-LAST_THREAT = "I am taking away your Blåhaj."
+LAST_THREAT = "You will not see your Blåhaj for the rest of your life. I am giving it back in an hour."
 lastSubmitName = ""
 submitCounter = 0
 def dtn() -> float:
