@@ -22,40 +22,39 @@ app = None
 
 def init(a):
     app = a
-
-@app.route("/callback")
-def callback():
-    global client, ready
-    code = request.args.get("code")
-    tokens = auth.fetch_token(authorization_response=f'http://localhost:8080/callback?code={code}')
-    access_token = tokens["access_token"]
-    refresh_token = tokens["refresh_token"]  # Store for renewal
-    client = Client(bearer_token=access_token)
-    client = Client(token=tokens)
-    ready = True
-    f = open("auth_stuff", 'w')
-    buffer = ""
-    for i in tokens:
-        buffer +=f"{i}:: {tokens[i]}\n"
-    f.write(buffer.removesuffix("\n"))
-    return "Hell yeah"
-@app.route("/post", methods=["POST"])
-def r_post():
-    text = request.form.get("text")
-    post(text)
-    return "Hell yeah"
-@app.route("/auth")
-def authf():
-    auth_url = auth.get_authorization_url()
-    print(f"Visit this URL to authorize: {auth_url}")
-    webbrowser.open(auth_url)
-@app.route("/ready")
-def readyf():
-    global ready
-    if ready:
-        return '1'
-    else:
-        return '0'
+    @app.route("/callback")
+    def callback():
+        global client, ready
+        code = request.args.get("code")
+        tokens = auth.fetch_token(authorization_response=f'http://localhost:8080/callback?code={code}')
+        access_token = tokens["access_token"]
+        refresh_token = tokens["refresh_token"]  # Store for renewal
+        client = Client(bearer_token=access_token)
+        client = Client(token=tokens)
+        ready = True
+        f = open("auth_stuff", 'w')
+        buffer = ""
+        for i in tokens:
+            buffer +=f"{i}:: {tokens[i]}\n"
+        f.write(buffer.removesuffix("\n"))
+        return "Hell yeah"
+    @app.route("/post", methods=["POST"])
+    def r_post():
+        text = request.form.get("text")
+        post(text)
+        return "Hell yeah"
+    @app.route("/auth")
+    def authf():
+        auth_url = auth.get_authorization_url()
+        print(f"Visit this URL to authorize: {auth_url}")
+        webbrowser.open(auth_url)
+    @app.route("/ready")
+    def readyf():
+        global ready
+        if ready:
+            return '1'
+        else:
+            return '0'
 
 if os.path.exists("auth_stuff"):
     f = open("auth_stuff")
