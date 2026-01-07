@@ -20,6 +20,11 @@ UPDATE Reminder
 SET completed = 1
 WHERE id = (?);
 
+missReminder:
+UPDATE Reminder
+SET completed = 2
+WHERE id = (?);
+
 getInRange:
 SELECT *
 FROM Reminder
