@@ -309,7 +309,8 @@ def action_lazy_person(ack,body,client,say):
             else:
                 say(f"Get to work, or I will {THREAT[stage-1]}")
                 client.chat_scheduleMessage(post_at=round(float(obj["ts"])-REMINDER_SPACING[stage-1]),
-                                        channel=obj["userID"],text=reminder_blocks(obj["id"],obj["name"]))
+                                        channel=obj["userID"],blocks=reminder_blocks(obj["id"],obj["name"]),
+                                        text=f"Have you finished {obj["name"]}")
             if stage == 1:
                 data[objIndex]["sent_last_reminder"] = True #type: ignore
                 stored["data"] = data
