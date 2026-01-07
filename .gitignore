@@ -5,3 +5,4 @@ app_auth
 __pycache__
 *.jpg
 *.json
+bsky
