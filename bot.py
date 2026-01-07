@@ -212,6 +212,37 @@ def reminder_blocks(id,name):
 def get_threat(index: int) -> str:
     return random.choice(THREAT[index])
 
+def add_task(name: str, ts: int | float,userID:str,text:str="Added from the app"):
+    obj = scheduled(name,ts, #type:ignore
+                    dt.datetime.now().timestamp(),userID,text=text)
+    delta = ts-obj["created"]
+    stage = 0
+    for space in REMINDER_SPACING:
+        if delta > space:
+            stage += 1
+        else:
+            break
+    print(f"delta {delta} stage {stage}")
+    obj["j"] = stage
+    if stage > 0:
+        app.client.chat_scheduleMessage(channel=obj["userID"],
+                                        text=f"Have you finished {nextLabel}",
+                                        post_at=round(float(obj["ts"]))-REMINDER_SPACING[stage-1],
+                                        blocks=reminder_blocks(obj["id"],nextLabel))
+        data.append(obj)
+        stored["data"] = data #saved into file later
+    else:
+        app.client.chat_postMessage(channel=obj["userID"],text="You should have locked in sooner. :(")
+    with open(DATA_FILE,"w") as file:
+            try:
+                #print(f"stored {stored}")
+                #print(f"data {data}")
+                json.dump(stored,file)
+            except Exception as _:
+                print(_)
+                print(stored)
+                print(data)
+
 @app.action("submit_button-action")
 def action_submit(ack, body, logger,client):
     global nextDate,nextTime,nextLabel,lastSubmitName,stored,data,submitCounter
@@ -227,6 +258,7 @@ def action_submit(ack, body, logger,client):
     splitTime = [int(x) for x in nextTime.split(":")]
     obj = scheduled(nextLabel,dt.datetime(splitDate[0],splitDate[1],splitDate[2],splitTime[0],splitTime[1]).timestamp(), #type:ignore
                     dt.datetime.now().timestamp(),body["user"]["id"],text="Hello. My name is Jigsaw.")
+    #for code edits after this line, replace the rest with add_task(name,ts,userID,text="") and use that
     delta = obj["ts"]-obj["created"]
     stage = 0
     for space in REMINDER_SPACING:
@@ -234,6 +266,7 @@ def action_submit(ack, body, logger,client):
             stage += 1
         else:
             break
+    obj["j"] = stage
     print(f"delta {delta} stage {stage}")
     if stage > 0:
         app.client.chat_scheduleMessage(channel=obj["userID"],
@@ -323,6 +356,8 @@ def action_lazy_person(ack,body,client,say):
                     stage += 1
                 else:
                     break
+            obj["j"] = stage
+            data[objIndex] = obj #type: ignore
             if False:
                 pass
             else:
