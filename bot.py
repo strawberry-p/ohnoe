@@ -14,7 +14,7 @@ def runApp():
 
 @flaskApp.route("/is_done", methods=["POST"])
 def is_done():
-    task = request.form.get()
+    task = request.form.get("task")
     image = request.files.get("image.jpg")
     image_bytes = image.read()
     match gemini_integration.check_image(image_bytes, task):
