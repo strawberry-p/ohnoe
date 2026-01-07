@@ -15,6 +15,11 @@ SELECT *
 FROM Reminder
 ORDER BY time;
 
+setSeenNotif:
+UPDATE Reminder
+SET completed = -1
+WHERE id = (?);
+
 completeReminder:
 UPDATE Reminder
 SET completed = 1
@@ -25,8 +30,14 @@ UPDATE Reminder
 SET completed = 2
 WHERE id = (?);
 
-getInRange:
+getForNotif:
 SELECT *
 FROM Reminder
 WHERE completed = 0
 AND time - (?) < (?);
+
+getForMiss:
+SELECT *
+FROM Reminder
+WHERE completed = -1
+AND time < (?);
