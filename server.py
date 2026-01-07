@@ -20,7 +20,7 @@ def task_add():
         bot.app.client.chat_postMessage(channel=MSG_UPDATE_CHANNEL,text=f"adding task: {name}")
         success = True
     finally:
-        return str(success)
+        return str({"ok":success,"id":str(userID)+"_"+str(name)+"_"+str(ts)})
 
 @flaskApp.route("/is_done", methods=["POST"])
 def is_done():

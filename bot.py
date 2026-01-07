@@ -142,7 +142,7 @@ class Scheduled:
         
 
 def scheduled(name,ts,created,userID,j=0,text=""):
-    return {"name":name,"id": userID+"_"+name+"_"+str(created), "ts": ts,"userID":userID,"created":created,"iter":j,"text":text,"sent_last_reminder":False}
+    return {"name":name,"id": userID+"_"+name+"_"+str(ts), "ts": ts,"userID":userID,"created":created,"iter":j,"text":text,"sent_last_reminder":False}
 
 def get_submitted_data(inp: dict):
     global nextDate,nextTime,nextLabel
