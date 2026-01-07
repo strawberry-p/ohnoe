@@ -116,7 +116,11 @@ fun main() = application {
                     }
                     var state: Data<GenerateContentResponse> by remember { mutableStateOf(Data.Initial) }
 
-                    LazyColumn(contentPadding = PaddingValues(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.widthIn(max = 256.dp)) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.widthIn(max = 256.dp)
+                    ) {
                         item {
                             OutlinedTextField(
                                 value = text,
@@ -172,39 +176,69 @@ fun main() = application {
                             )
                         }
                         item {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()
+                            ) {
                                 OutlinedButton(onClick = { settingsOpen = !settingsOpen }, shape = RectangleShape) {
-                                    Text("Settings")
+                                    Text("*")
                                 }
-                                Button(enabled = dateValidation.first && date.length == 8 && timeValidation.first && time.length == 4 && text.isNotBlank() && state !is Data.Loading, onClick = {
-                                    scope.launch(Dispatchers.IO) {
-                                        state = Data.Loading
-                                        val resp = client?.models?.generateContent("gemini-2.5-flash", "Write several distinct witty and mocking sentences in first person about how you didn't manage to complete this task separated by semicolon: \"$text\". If the text provided is not a humanly possible task, answer \"INCORRECT\"", null)
-                                        if (resp?.text()?.uppercase()?.contains("INCORRECT")?.equals(true) ?: false) {
-                                            state = Data.Error("Not a real task")
-                                        } else {
-                                            resp?.let {
-                                                state = Data.Success(it)
-                                                it.text()?.let {
-                                                    repository.addReminder(
-                                                        text, it, SimpleDateFormat("ddMMyyyyhhmm").parse(date + time).toInstant().toEpochMilli()
-                                                    )
+                                Button(
+                                    enabled = dateValidation.first && date.length == 8 && timeValidation.first && time.length == 4 && text.isNotBlank() && state !is Data.Loading,
+                                    onClick = {
+                                        scope.launch(Dispatchers.IO) {
+                                            state = Data.Loading
+                                            val resp = client?.models?.generateContent(
+                                                "gemini-2.5-flash",
+                                                "Write several distinct witty and mocking sentences in first person about how you didn't manage to complete this task separated by semicolon: \"$text\". If the text provided is not a humanly possible task, answer \"INCORRECT\"",
+                                                null
+                                            )
+                                            if (resp?.text()?.uppercase()?.contains("INCORRECT")?.equals(true)
+                                                    ?: false
+                                            ) {
+                                                state = Data.Error("Not a real task")
+                                            } else {
+                                                resp?.let {
+                                                    state = Data.Success(it)
+                                                    it.text()?.let {
+                                                        repository.addReminder(
+                                                            text,
+                                                            it,
+                                                            SimpleDateFormat("ddMMyyyyhhmm").parse(date + time)
+                                                                .toInstant().toEpochMilli()
+                                                        )
+                                                    }
+                                                    text = ""
+                                                    date = ""
+                                                    time = ""
+                                                } ?: {
+                                                    state = Data.Error("Failed to generate response")
                                                 }
-                                                text = ""
-                                                date = ""
-                                                time = ""
-                                            } ?: {
-                                                state = Data.Error("Failed to generate response")
                                             }
                                         }
-                                    }
-                                }, shape = RectangleShape, modifier = Modifier.weight(1f)) {
+                                    },
+                                    shape = RectangleShape,
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Text("Add reminder")
                                 }
+                            }
+                        }
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 when (state) {
-                                    is Data.Error -> Text((state as Data.Error).str, color = MaterialTheme.colorScheme.error)
+                                    is Data.Error -> Text(
+                                        (state as Data.Error).str, color = MaterialTheme.colorScheme.error
+                                    )
+
                                     Data.Initial -> {}
-                                    Data.Loading -> CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary)
+                                    Data.Loading -> CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary
+                                    )
+
                                     is Data.Success<*> -> {}
                                 }
                             }
@@ -213,9 +247,13 @@ fun main() = application {
                             item {
                                 Column {
                                     integrations.forEach { i ->
-                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                                            integrationRepo.toggle(i.name)
-                                        }).padding(start = 16.dp)) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.clickable(onClick = {
+                                                integrationRepo.toggle(i.name)
+                                            }).padding(start = 16.dp)
+                                        ) {
                                             Text(i.name, modifier = Modifier.weight(1f))
                                             Checkbox(checked = i.active != 0L, onCheckedChange = {
                                                 integrationRepo.toggle(i.name)
@@ -234,26 +272,28 @@ fun main() = application {
                         item {
                             Card(modifier = Modifier.fillMaxWidth(), onClick = { doneExpanded = !doneExpanded }) {
                                 Row {
-                                    Text(if (doneExpanded) "Close" else "See completed", modifier = Modifier.padding(16.dp))
-                                }
-                            }
-                        }
-                        if (doneExpanded)
-                            items(reminders.filter { it.completed != 0L }, key = { it.id }) { r ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).alpha(0.7f).animateItem(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(text = r.text, style = MaterialTheme.typography.bodyLarge)
                                     Text(
-                                        text = LocalDateTime.ofInstant(
-                                            java.time.Instant.ofEpochMilli(r.time), ZoneOffset.systemDefault()
-                                        ).format(
-                                            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-                                        ), style = MaterialTheme.typography.bodyMedium
+                                        if (doneExpanded) "Close" else "See completed",
+                                        modifier = Modifier.padding(16.dp)
                                     )
                                 }
                             }
+                        }
+                        if (doneExpanded) items(reminders.filter { it.completed != 0L }, key = { it.id }) { r ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .alpha(0.7f).animateItem(), horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = r.text, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    text = LocalDateTime.ofInstant(
+                                        java.time.Instant.ofEpochMilli(r.time), ZoneOffset.systemDefault()
+                                    ).format(
+                                        DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                                    ), style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
                         items(reminders.filter { it.completed == 0L }, key = { it.id }) { r ->
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).animateItem(),

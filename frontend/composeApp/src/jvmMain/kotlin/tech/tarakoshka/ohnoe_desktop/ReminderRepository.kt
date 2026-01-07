@@ -22,7 +22,7 @@ class ReminderRepository(driverFactory: DatabaseDriverFactory) {
     val notify = flow {
         while (true) {
             emit(getForNotification(5))
-            delay(10.seconds)
+            delay(4.minutes)
         }
     }
 
@@ -38,9 +38,7 @@ class ReminderRepository(driverFactory: DatabaseDriverFactory) {
     }
 
     suspend fun getForNotification(notifyBeforeMin: Long): List<Reminder> {
-        val lst = queries.getInRange(Clock.System.now().toEpochMilliseconds(), 1000 * 60 * notifyBeforeMin).executeAsList()
-        lst.forEach { complete(it.id) }
-        return lst
+        return queries.getInRange(Clock.System.now().toEpochMilliseconds(), 1000 * 60 * notifyBeforeMin).executeAsList()
     }
 
     suspend fun getForNotificationSec(seconds: Long): List<Reminder> {
