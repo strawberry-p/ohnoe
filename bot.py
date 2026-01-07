@@ -60,7 +60,7 @@ def update_from_file():
     res = {}
     try:
         with open(UPDATE_FILE,"x") as file:
-            file.write("{'q':[],'rsp_ts':0}") #should error out
+            file.write('{"q":[],"rsp_ts":0}') #should error out
         return 0
     except FileExistsError:
         print(f"{UPDATE_FILE} exists")
@@ -390,7 +390,6 @@ def action_lazy_person(ack,body,client,say):
         
 @app.event("message")
 def handle_message(ack):
-    ack()
     update_from_file()
 
 @app.action("datepicker-action")

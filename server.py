@@ -4,11 +4,8 @@ import bot
 flaskApp = Flask(__name__)
 def runApp():
     flaskApp.run("0.0.0.0", 8080)
-botThread = threading.Thread(target=bot.main)
 flaskThread = threading.Thread(target=runApp)
 flaskThread.start()
-
-botThread.start()
 
 @flaskApp.route("/add",methods=["POST"])
 def task_add():
@@ -41,3 +38,4 @@ def is_done():
             return 'Task done!'
         case _:
             return 'Unrelated image.'
+bot.main()
