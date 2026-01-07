@@ -6,10 +6,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import tech.tarakoshka.ohnoe_desktop.AppDatabase
+import kotlinx.coroutines.flow.flowOn
 import tech.tarakoshka.ohnoedesktop.Reminder
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class ReminderRepository(driverFactory: DatabaseDriverFactory) {
@@ -19,40 +18,31 @@ class ReminderRepository(driverFactory: DatabaseDriverFactory) {
 
     val reminders: Flow<List<Reminder>> = queries.getAllReminders().asFlow().mapToList(Dispatchers.IO)
 
-    val notify = flow {
+    val fiveMin = flow {
         while (true) {
-            emit(getForNotification(5))
-            delay(4.minutes)
+            emit(queries.getForNotif(Clock.System.now().toEpochMilliseconds(), 1000 * 60 * 5).executeAsList().also {
+                it.forEach { queries.setSeenNotif(it.id) }
+            })
+            delay(2.seconds)
         }
     }
 
     val missed = flow {
         while (true) {
-            emit(getForNotificationSec(1))
+            emit(
+                queries.getForMiss(Clock.System.now().toEpochMilliseconds()).executeAsList().also {
+                    it.forEach { queries.missReminder(it.id) }
+                }
+            )
             delay(1.seconds)
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     fun addReminder(text: String, messages: String, timestamp: Long) {
         queries.insertReminder(text, messages, timestamp)
     }
 
-    suspend fun getForNotification(notifyBeforeMin: Long): List<Reminder> {
-        return queries.getInRange(Clock.System.now().toEpochMilliseconds(), 1000 * 60 * notifyBeforeMin).executeAsList()
-    }
-
-    suspend fun getForNotificationSec(seconds: Long): List<Reminder> {
-        val lst = queries.getInRange(Clock.System.now().toEpochMilliseconds(), 1000 * seconds).executeAsList()
-        lst.forEach { complete(it.id) }
-        return lst
-    }
-
-
     fun complete(id: Long) {
         queries.completeReminder(id)
-    }
-
-    fun miss(id: Long) {
-        queries
     }
 }
