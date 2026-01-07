@@ -8,6 +8,7 @@ DATA_FILE = "bot-data.json"
 REMINDER_SPACING = [1800,3600*2,3600*6]
 REMINDER_SPACING = [30,120,300]
 THREAT = ["I will take your Blåhaj.","eat your RAM","straighten out your clothes with a soldering iron","pop your circuit breakers"]
+LAST_THREAT = "I am taking away your Blåhaj."
 lastSubmitName = ""
 submitCounter = 0
 def dtn() -> float:
@@ -41,7 +42,7 @@ class Scheduled:
         
 
 def scheduled(name,ts,created,userID,j=0,text=""):
-    return {"name":name,"id": userID+"_"+name+"_"+str(created), "ts": ts,"userID":userID,"created":created,"iter":j,"text":text}
+    return {"name":name,"id": userID+"_"+name+"_"+str(created), "ts": ts,"userID":userID,"created":created,"iter":j,"text":text,"sent_last_reminder":False}
 
 def get_submitted_data(inp: dict):
     global nextDate,nextTime,nextLabel
@@ -136,60 +137,9 @@ def message_lockin(message,client):
     client.chat_postEphemeral(channel=message["channel"],user=message["user"],blocks=blocks,text="Add a task. You will not regret it.")
 
 @app.message("lock in")
-def message_alt_lock_in(message,say):
-    say(blocks=blocks,text="Add a task. You will not regret it.")
+def message_alt_lock_in(message,client):
+    client.chat_postEphemeral(channel=message["channel"],user=message["user"],blocks=blocks,text="Add a task. You will not regret it.")
 
-def reminder_blocks_old(id,name):
-    return """{
-	"blocks": [
-		{
-			"type": "input",
-			"element": {
-				"type": "radio_buttons",
-				"options": [
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "Yeah !",
-							"emoji": true
-						},
-						"value": "value-0"
-					},
-					{
-						"text": {
-							"type": "plain_text",
-							"text": "Nope :(",
-							"emoji": true
-						},
-						"value": "value-1"
-					}
-				],
-				"action_id": "reminder_radio-action"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": 'Have you finished """+name+"""?',
-				"emoji": true
-			},
-			"optional": false
-		},
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Answer honestly",
-						"emoji": true
-					},
-					"value": '"""+id+"""',
-					"action_id": "reminder_submit-action"
-				}
-			]
-		}
-	]
-}"""
 
 def reminder_blocks(id,name):
     res = """[
@@ -274,6 +224,8 @@ def action_submit(ack, body, logger,client):
                                         text=f"Have you finished {nextLabel}",
                                         post_at=round(float(obj["ts"]))-REMINDER_SPACING[stage-1],
                                         blocks=reminder_blocks(obj["id"],nextLabel))
+        data.append(obj)
+        stored["data"] = data #saved into file later
     else:
         client.chat_postMessage(channel=obj["userID"],text="You should have locked in sooner. :(")
     print(body["trigger_id"])
@@ -309,7 +261,8 @@ def action_reminder_radio(ack):
 @app.action("reminder_submit-action")
 def action_lazy_person(ack,body,client,say):
     ack()
-    print(body)
+    #print(body)
+    print(data)
     remID = body["actions"][0]["value"]
     print(f"id {remID}")
     scheduledRes = []
@@ -327,7 +280,7 @@ def action_lazy_person(ack,body,client,say):
     objIndex = None
     j = 0
     for i in data:
-        if i.get(remID,"-1") != "-1":
+        if i.get("id","-1") == remID:
             scheduledRes.append(i)
             objIndex = j
         j += 1
@@ -338,17 +291,36 @@ def action_lazy_person(ack,body,client,say):
     else:
         obj = scheduledRes[-1]
     delta = round(float(obj["ts"])-dt.datetime.now().timestamp())
-    if delta < REMINDER_SPACING[0]:
-        say("You lazy fuck. You procrastinated responding to a productivity bot. "+THREAT[0])
-    else:
-        stage = 0
-        for space in REMINDER_SPACING:
-            if delta+1 > space:
-                stage += 1
+    if not good:
+        if delta < REMINDER_SPACING[0]:
+            if obj["sent_last_reminder"]:
+                say(LAST_THREAT)
             else:
-                break
-        client.chat_scheduleMessage(post_at=round(float(obj["ts"])-REMINDER_SPACING[stage-1]),
-                                    channel=obj["userID"],text=)
+                say("You lazy fuck. You procrastinated responding to a productivity bot. "+LAST_THREAT)
+        else:
+            stage = 0
+            for space in REMINDER_SPACING:
+                if delta+1 > space:
+                    stage += 1
+                else:
+                    break
+            if False:
+                pass
+            else:
+                say(f"Get to work, or I will {THREAT[stage-1]}")
+                client.chat_scheduleMessage(post_at=round(float(obj["ts"])-REMINDER_SPACING[stage-1]),
+                                        channel=obj["userID"],text=reminder_blocks(obj["id"],obj["name"]))
+            if stage == 1:
+                data[objIndex]["sent_last_reminder"] = True #type: ignore
+                stored["data"] = data
+                with open(DATA_FILE,"w") as file:
+                    json.dump(stored,file)
+    else:
+        say("Alright then, good job. You're safe... for now")
+        print(data.pop(objIndex)) #type: ignore
+        stored["data"] = data
+        with open(DATA_FILE,"w") as file:
+            json.dump(stored,file)
         
 
 
