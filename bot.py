@@ -24,6 +24,7 @@ def auth_b():
     f.write(f'{request.form.get("username")}\n{request.form.get("password")}')
     f.close()
     ready = True
+    return 'Hell yeah'
 @fapp.route("/ready_bsky")
 def ready_bsky():
     global ready
@@ -35,6 +36,7 @@ def ready_bsky():
 def post():
     text = client_utils.TextBuilder().text(request.form.get("text"))
     post = client.send_post(text)
+    return 'Hell yeah'
 if(os.path.exists("bsky")):
     f = open("bsky")
     r = f.read().split("\n")
