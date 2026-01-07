@@ -19,8 +19,14 @@ import com.google.genai.types.GenerateContentResponse
 import io.github.kdroidfilter.knotify.builder.ExperimentalNotificationsApi
 import io.github.kdroidfilter.knotify.builder.notification
 import io.github.kdroidfilter.knotify.builder.sendNotification
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.java.JavaHttpEngine
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.post
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import tech.tarakoshka.ohnoe_desktop.theme.AppTheme
 import tech.tarakoshka.ohnoedesktop.Reminder
 import java.text.SimpleDateFormat
@@ -29,6 +35,16 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.time.Clock
+
+
+val httpClient = HttpClient {
+    install(ContentNegotiation) {
+        json(Json {
+            ignoreUnknownKeys = true
+            prettyPrint = true
+        })
+    }
+}
 
 sealed interface Data<out T> {
     data object Initial : Data<Nothing>
@@ -68,6 +84,9 @@ fun main() = application {
                             title = "Task Failed",
                             message = r.messages.split(";").random(),
                         )
+                        httpClient.post("") {
+
+                        }
                     }
                 }
             }

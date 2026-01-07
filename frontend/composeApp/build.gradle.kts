@@ -22,6 +22,9 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation("app.cash.sqldelight:coroutines-extensions:2.1.0")
+            implementation("io.ktor:ktor-client-core:3.3.3")
+            implementation("io.ktor:ktor-client-content-negotiation:3.3.3")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -32,6 +35,7 @@ kotlin {
             implementation("app.cash.sqldelight:sqlite-driver:2.1.0")
             implementation("com.google.genai:google-genai:1.32.0")
             implementation("io.github.kdroidfilter:knotify:0.4.3")
+            implementation("io.ktor:ktor-client-java:3.3.3")
         }
     }
 }

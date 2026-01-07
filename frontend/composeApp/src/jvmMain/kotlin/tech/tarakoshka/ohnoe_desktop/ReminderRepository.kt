@@ -29,7 +29,7 @@ class ReminderRepository(driverFactory: DatabaseDriverFactory) {
     val missed = flow {
         while (true) {
             emit(getForNotificationSec(1))
-            delay(1.seconds)
+            delay(2.seconds)
         }
     }
 
