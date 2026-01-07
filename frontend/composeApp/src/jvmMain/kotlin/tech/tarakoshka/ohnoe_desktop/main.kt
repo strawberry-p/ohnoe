@@ -1,59 +1,63 @@
 package tech.tarakoshka.ohnoe_desktop
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.application
-
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TimePickerLayoutType
-import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
+import com.google.genai.Client
+import com.google.genai.types.GenerateContentResponse
+import io.github.kdroidfilter.knotify.builder.ExperimentalNotificationsApi
+import io.github.kdroidfilter.knotify.builder.notification
+import io.github.kdroidfilter.knotify.builder.sendNotification
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import tech.tarakoshka.ohnoedesktop.Reminder
 import java.text.SimpleDateFormat
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import kotlin.concurrent.timer
 import kotlin.time.Clock
-import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class)
+sealed interface Data<out T> {
+    data object Initial : Data<Nothing>
+    data object Loading : Data<Nothing>
+    data class Success<out T>(val data: T) : Data<T>
+    data class Error(val str: String) : Data<Nothing>
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalNotificationsApi::class)
 fun main() = application {
     val driverFactory = DatabaseDriverFactory()
     val repository = remember { ReminderRepository(driverFactory) }
+
+    val client: Client? = Client.builder().apiKey(System.getenv("GEMINI_TOKEN")).build()
 
     val reminders by repository.reminders.collectAsState(initial = emptyList())
 
     Window(onCloseRequest = ::exitApplication, title = "Ohnoe") {
         MaterialTheme {
+            val scope = rememberCoroutineScope()
+            scope.launch {
+                repository.notify.collect {
+                    it.forEach { r ->
+                        println(r)
+                        sendNotification(
+                            title = "Task Failed",
+                            message = r.messages.split(";").random(),
+                        )
+                    }
+                }
+            }
             Row(modifier = Modifier.padding(horizontal = 16.dp)) {
                 var text by remember { mutableStateOf("") }
                 var date by remember { mutableStateOf("") }
@@ -95,6 +99,7 @@ fun main() = application {
                     }
                     return@derivedStateOf Pair(true, "")
                 }
+                var state: Data<GenerateContentResponse> by remember { mutableStateOf(Data.Initial) }
 
                 LazyColumn(contentPadding = PaddingValues(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.widthIn(max = 256.dp)) {
                     item {
@@ -104,6 +109,7 @@ fun main() = application {
                             label = { Text("Reminder content") },
                             shape = RectangleShape,
                             minLines = 3,
+                            enabled = state !is Data.Loading
                         )
                     }
                     item {
@@ -124,7 +130,8 @@ fun main() = application {
                             placeholder = { Text("dd/mm/yyyy") },
                             label = { Text("Date") },
                             singleLine = true,
-                            shape = RectangleShape
+                            shape = RectangleShape,
+                            enabled = state !is Data.Loading
                         )
                     }
                     item {
@@ -145,27 +152,79 @@ fun main() = application {
                             placeholder = { Text("hh:mm") },
                             label = { Text("Time") },
                             singleLine = true,
-                            shape = RectangleShape
+                            shape = RectangleShape,
+                            enabled = state !is Data.Loading
                         )
                     }
                     item {
-                        Button(enabled = dateValidation.first && date.length == 8 && timeValidation.first && time.length == 4 && text.isNotBlank(), onClick = {
-                            repository.addReminder(
-                                text, SimpleDateFormat("ddMMyyyyhhmm").parse(date + time).toInstant().toEpochMilli()
-                            )
-                        }, shape = RectangleShape) {
-                            Text("Add reminder")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(enabled = dateValidation.first && date.length == 8 && timeValidation.first && time.length == 4 && text.isNotBlank() && state !is Data.Loading, onClick = {
+                                scope.launch(Dispatchers.IO) {
+                                    state = Data.Loading
+                                    val resp = client?.models?.generateContent("gemini-2.5-flash", "Write several distinct witty and mocking sentences in first person about how you didn't manage to complete this task separated by semicolon: \"$text\". If the text provided is not a humanly possible task, answer \"INCORRECT\"", null)
+                                    if (resp?.text()?.uppercase()?.contains("INCORRECT")?.equals(true) ?: false) {
+                                        state = Data.Error("Not a real task")
+                                    } else {
+                                        resp?.let {
+                                            state = Data.Success(it)
+                                            it.text()?.let {
+                                                repository.addReminder(
+                                                    text, it, SimpleDateFormat("ddMMyyyyhhmm").parse(date + time).toInstant().toEpochMilli()
+                                                )
+                                            }
+                                        } ?: {
+                                            state = Data.Error("Failed to generate response")
+                                        }
+                                    }
+                                }
+                            }, shape = RectangleShape) {
+                                Text("Add reminder")
+                            }
+                            when (state) {
+                                is Data.Error -> Text((state as Data.Error).str, color = MaterialTheme.colorScheme.error)
+                                Data.Initial -> {}
+                                Data.Loading -> CircularProgressIndicator()
+                                is Data.Success<*> -> {}
+                            }
                         }
                     }
                 }
 
                 VerticalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
+                var doneExpanded by remember { mutableStateOf(false) }
                 LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 16.dp)) {
-                    items(reminders) { r ->
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth(), onClick = { doneExpanded = !doneExpanded }) {
+                            Row {
+                                Text(if (doneExpanded) "Close" else "See completed", modifier = Modifier.padding(16.dp))
+                            }
+                            AnimatedVisibility(doneExpanded) {
+                                Column {
+                                    reminders.filter { it.completed != 0L }.forEach { r ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(bottom = 4.dp).alpha(0.7f),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(text = r.text, style = MaterialTheme.typography.bodyLarge)
+                                            Text(
+                                                text = LocalDateTime.ofInstant(
+                                                    java.time.Instant.ofEpochMilli(r.time), ZoneOffset.systemDefault()
+                                                ).format(
+                                                    DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                                                ), style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    items(reminders.filter { it.completed == 0L }) { r ->
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(text = r.text, style = MaterialTheme.typography.bodyLarge)
                             Text(
@@ -175,6 +234,11 @@ fun main() = application {
                                     DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
                                 ), style = MaterialTheme.typography.bodyMedium
                             )
+                            Button(onClick = {
+                                repository.complete(r.id)
+                            }) {
+                                Text("Done")
+                            }
                         }
                     }
                 }
