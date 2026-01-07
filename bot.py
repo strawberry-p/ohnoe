@@ -17,9 +17,12 @@ dotenv.load_dotenv()
 DATA_FILE = "bot-data.json"
 REMINDER_SPACING = [1800,3600*2,3600*6]
 REMINDER_SPACING = [30,120,300]
-THREAT = ["take your Blåhaj.", "make sure you won't get any sleep tonight.", "cut all your power cables", "mess with your router's settings",\
-          "eat your RAM", "bend your CPU's pins", "straighten out your clothes with a soldering iron", "spray cheap perfume all over your clothes",\
-          "pop your circuit breakers", "log you out of all the websites you use", "make sure both sides of your pillow will be lukewarm."]
+THREAT = [["just kill you.", "let you sleep with the fishes.", "make you sleep for the rest of time.", "give you the aunt treatment.", \
+          "let you be aunt Bethesda.", "get you in your sleep.", "make you see your lost loved ones.", "let you have an interview with Jesus."],
+          ["take your Blåhaj.", "make sure you won't get any sleep tonight.", "cut all your power cables", "mess with your router's settings",\
+          "eat your RAM", "bend your CPU's pins", "oxidize your SSD's contacts", "make it impossible for you to get a job."],
+          ["straighten out your clothes with a soldering iron", "spray cheap perfume all over your clothes",\
+          "pop your circuit breakers", "log you out of all the websites you use", "make sure both sides of your pillow will be lukewarm tonight."]]
 LAST_THREAT = "I am taking away your Blåhaj."
 lastSubmitName = ""
 submitCounter = 0
