@@ -45,7 +45,7 @@ YES
 NO
 UNRELATED''']
 )   
-    res = response.text.upper()
+    res = response.text.upper() #type: ignore
     if res.startswith("YES"):
         return 1
     elif res.startswith("NO"):

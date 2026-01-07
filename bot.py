@@ -5,29 +5,6 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 import gemini_integration, x_integration
 import random, threading
-from flask import Flask, request
-flaskApp = Flask(__name__)
-x_integration.init(flaskApp)
-
-def runApp():
-    flaskApp.run("0.0.0.0", 8080)
-
-@flaskApp.route("/is_done", methods=["POST"])
-def is_done():
-    task = request.form.get("task")
-    image = request.files.get("image.jpg")
-    image_bytes = image.read()
-    match gemini_integration.check_image(image_bytes, task):
-        case -1:
-            return 'Unrelated image.'
-        case 0:
-            return 'Task not done.'
-        case 1:
-            return 'Task done!'
-
-
-
-threading.Thread(target=runApp).start()
 
 dotenv.load_dotenv()
 DATA_FILE = "bot-data.json"
