@@ -4,7 +4,15 @@ import datetime as dt
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 import gemini_integration, x_integration
-import random
+import random, threading
+from flask import Flask, request
+app = Flask(__name__)
+
+def runApp():
+    app.run("0.0.0.0", 8080)
+
+threading.Thread(target=runApp).start()
+
 dotenv.load_dotenv()
 DATA_FILE = "bot-data.json"
 REMINDER_SPACING = [1800,3600*2,3600*6]

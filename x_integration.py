@@ -2,6 +2,7 @@ from xdk.oauth2_auth import OAuth2PKCEAuth
 import webbrowser
 from xdk import Client
 import threading, os
+from flask import Flask, request
 
 # Step 1: Create PKCE instance
 f = open("app_auth")
@@ -17,8 +18,10 @@ auth = OAuth2PKCEAuth(
 client = None
 ready = False
 
-from flask import Flask, request
-app = Flask(__name__)
+app = None
+
+def init(a):
+    app = a
 
 @app.route("/callback")
 def callback():
@@ -46,7 +49,6 @@ def authf():
     auth_url = auth.get_authorization_url()
     print(f"Visit this URL to authorize: {auth_url}")
     webbrowser.open(auth_url)
-    threading.Thread(target=runApp).start()
 @app.route("/ready")
 def readyf():
     global ready
@@ -54,9 +56,6 @@ def readyf():
         return '1'
     else:
         return '0'
-
-def runApp():
-    app.run("0.0.0.0", 8080)
 
 if os.path.exists("auth_stuff"):
     f = open("auth_stuff")
@@ -89,5 +88,3 @@ def post(text):
 def isReady():
     global ready
     return ready
-
-threading.Thread(target=runApp).start()
