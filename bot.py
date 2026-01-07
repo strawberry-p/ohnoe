@@ -5,8 +5,14 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 dotenv.load_dotenv()
 DATA_FILE = "bot-data.json"
+REMINDER_SPACING = [1800,3600*2,3600*6]
+REMINDER_SPACING = [30,120,300]
+THREAT = ["I will take your Blåhaj.","eat your RAM","straighten out your clothes with a soldering iron","pop your circuit breakers"]
 lastSubmitName = ""
 submitCounter = 0
+def dtn() -> float:
+    return dt.datetime.now().timestamp()
+
 try:
     with open("bot-data.json") as file:
         stored = json.load(file)
@@ -133,15 +139,119 @@ def message_lockin(message,client):
 def message_alt_lock_in(message,say):
     say(blocks=blocks,text="Add a task. You will not regret it.")
 
+def reminder_blocks_old(id,name):
+    return """{
+	"blocks": [
+		{
+			"type": "input",
+			"element": {
+				"type": "radio_buttons",
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Yeah !",
+							"emoji": true
+						},
+						"value": "value-0"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Nope :(",
+							"emoji": true
+						},
+						"value": "value-1"
+					}
+				],
+				"action_id": "reminder_radio-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": 'Have you finished """+name+"""?',
+				"emoji": true
+			},
+			"optional": false
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Answer honestly",
+						"emoji": true
+					},
+					"value": '"""+id+"""',
+					"action_id": "reminder_submit-action"
+				}
+			]
+		}
+	]
+}"""
+
+def reminder_blocks(id,name):
+    res = """[
+		{
+			"type": "input",
+			"element": {
+				"type": "radio_buttons",
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Yeah !",
+							"emoji": true
+						},
+						"value": "yes"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Nope :(",
+							"emoji": true
+						},
+						"value": "no"
+					}
+				],
+				"action_id": "reminder_radio-action"
+			},
+			"label": {
+				"type": "plain_text",
+				"text": "Have you finished ___placeNameHere___?",
+				"emoji": true
+			},
+			"optional": false
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Answer honestly",
+						"emoji": true
+					},
+					"value": "___placeIDHere___",
+					"action_id": "reminder_submit-action"
+				}
+			]
+		}
+	]"""
+    res = res.replace("___placeIDHere___",id)
+    res = res.replace("___placeNameHere___",name)
+    return res
+
 
 
 @app.action("submit_button-action")
-def action_submit(ack, body, logger):
+def action_submit(ack, body, logger,client):
     global nextDate,nextTime,nextLabel,lastSubmitName,stored,data,submitCounter
     submitCounter += 1
     ack()
     print("submit "+str(body["state"]["values"]))
-    print(body.get('value',"no value in submit button"))
     for k in body["state"]["values"]:
         v = body["state"]["values"][k]
         get_submitted_data(v)
@@ -151,10 +261,26 @@ def action_submit(ack, body, logger):
     splitTime = [int(x) for x in nextTime.split(":")]
     obj = scheduled(nextLabel,dt.datetime(splitDate[0],splitDate[1],splitDate[2],splitTime[0],splitTime[1]).timestamp(), #type:ignore
                     dt.datetime.now().timestamp(),body["user"]["id"],text="Hello. My name is Jigsaw.")
-    print(f"body length {len(str(body))}")
+    delta = obj["ts"]-obj["created"]
+    stage = 0
+    for space in REMINDER_SPACING:
+        if delta > space:
+            stage += 1
+        else:
+            break
+    print(f"delta {delta} stage {stage}")
+    if stage > 0:
+        app.client.chat_scheduleMessage(channel=obj["userID"],
+                                        text=f"Have you finished {nextLabel}",
+                                        post_at=round(float(obj["ts"]))-REMINDER_SPACING[stage-1],
+                                        blocks=reminder_blocks(obj["id"],nextLabel))
+    else:
+        client.chat_postMessage(channel=obj["userID"],text="You should have locked in sooner. :(")
     print(body["trigger_id"])
     if nextLabel == lastSubmitName:
         print(f'deduped {body["trigger_id"]}')
+    elif True:
+        print("passed")
     else:
         data.append(obj)
         stored["data"] = data
@@ -163,8 +289,8 @@ def action_submit(ack, body, logger):
         lastSubmitName = nextLabel
     with open(DATA_FILE,"w") as file:
             try:
-                print(f"stored {stored}")
-                print(f"data {data}")
+                #print(f"stored {stored}")
+                #print(f"data {data}")
                 json.dump(stored,file)
             except Exception as _:
                 print(_)
@@ -175,6 +301,56 @@ def action_submit(ack, body, logger):
     splitDate = []
     splitTime = []
     logger.info(body)
+
+@app.action("reminder_radio-action")
+def action_reminder_radio(ack):
+    ack()
+
+@app.action("reminder_submit-action")
+def action_lazy_person(ack,body,client,say):
+    ack()
+    print(body)
+    remID = body["actions"][0]["value"]
+    print(f"id {remID}")
+    scheduledRes = []
+    good = False
+    for k in body['state']['values']:
+        v = body['state']['values'][k]
+        r = v.get("reminder_radio-action",-1)
+        if v.get("reminder_radio-action","-1") != "-1":
+            val = r["selected_option"]["value"]
+            print(val)
+            if r["selected_option"]["value"] == "yes" or val == "value-0":
+                good = True
+        else:
+            print(f"{k} is not a radio value")
+    objIndex = None
+    j = 0
+    for i in data:
+        if i.get(remID,"-1") != "-1":
+            scheduledRes.append(i)
+            objIndex = j
+        j += 1
+    print(f"res length {len(scheduledRes)}")
+    if len(scheduledRes) == 0:
+        obj = {}
+        raise ValueError(f"ID {remID} not found")
+    else:
+        obj = scheduledRes[-1]
+    delta = round(float(obj["ts"])-dt.datetime.now().timestamp())
+    if delta < REMINDER_SPACING[0]:
+        say("You lazy fuck. You procrastinated responding to a productivity bot. "+THREAT[0])
+    else:
+        stage = 0
+        for space in REMINDER_SPACING:
+            if delta+1 > space:
+                stage += 1
+            else:
+                break
+        client.chat_scheduleMessage(post_at=round(float(obj["ts"])-REMINDER_SPACING[stage-1]),
+                                    channel=obj["userID"],text=)
+        
+
 
 @app.action("datepicker-action")
 def action_datepicker(ack, body, logger):
