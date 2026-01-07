@@ -1,5 +1,5 @@
 from flask import Flask, request
-import threading
+import threading, json
 import bot
 flaskApp = Flask(__name__)
 def runApp():
@@ -8,12 +8,24 @@ botThread = threading.Thread(target=bot.main)
 flaskThread = threading.Thread(target=runApp)
 flaskThread.start()
 
+botThread.start()
+
 @flaskApp.route("/add",methods=["POST"])
 def task_add():
     name = request.form.get("name")
     userID = request.form.get("userID")
     ts = request.form.get("timestamp")
-    return bot.add_task(name,float(ts),userID) #type: ignore
+    print(f"request to add task {name} for {userID} at {ts}")
+    success = False
+    try:
+        with open(bot.UPDATE_FILE,"r") as file:
+            queueJson = json.load(file)
+        queueJson["q"].append({"name":name,"ts":float(ts),"userID":userID}) #type: ignore
+        with open(bot.UPDATE_FILE,"w") as file:
+            json.dump(queueJson,file)
+        success = True
+    finally:
+        return str(success)
 
 @flaskApp.route("/is_done", methods=["POST"])
 def is_done():
