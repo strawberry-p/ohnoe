@@ -6,10 +6,10 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 import gemini_integration, x_integration
 import random, threading
 from flask import Flask, request
-app = Flask(__name__)
+flaskApp = Flask(__name__)
 
 def runApp():
-    app.run("0.0.0.0", 8080)
+    flaskApp.run("0.0.0.0", 8080)
 
 threading.Thread(target=runApp).start()
 
@@ -17,9 +17,10 @@ dotenv.load_dotenv()
 DATA_FILE = "bot-data.json"
 REMINDER_SPACING = [1800,3600*2,3600*6]
 REMINDER_SPACING = [30,120,300]
-THREAT = ["take your Blåhaj.", "make sure you won't get any sleep tonight.", "cut all your power cables", "mess with your router's settings",\
-          "eat your RAM", "bend your CPU's pins", "straighten out your clothes with a soldering iron", "spray cheap perfume all over your clothes",\
-          "pop your circuit breakers", "log you out of all the websites you use", "make sure both sides of your pillow will be lukewarm."]
+THREAT = [["take your Blåhaj.", "make sure you won't get any sleep tonight.", "cut all your power cables"], ["mess with your router's settings",\
+          "eat your RAM", "bend your CPU's pins"], ["straighten out your clothes with a soldering iron", "spray cheap perfume all over your clothes",\
+          "pop your circuit breakers"], ["log you out of all the websites you use", "make sure both sides of your pillow will be lukewarm.",\
+          "underclock your CPU"]]
 LAST_THREAT = "I am taking away your Blåhaj."
 lastSubmitName = ""
 submitCounter = 0
@@ -207,10 +208,7 @@ def reminder_blocks(id,name):
     return res
 
 def get_threat(index: int) -> str:
-    if random.randint(0,1) and False:
-        pass
-    else:
-        return THREAT[index]
+    return random.choice(THREAT[index])
 
 @app.action("submit_button-action")
 def action_submit(ack, body, logger,client):
@@ -326,7 +324,7 @@ def action_lazy_person(ack,body,client,say):
             if False:
                 pass
             else:
-                say(f"Get to work, or I will {THREAT[stage-1]}")
+                say(f"Get to work, or I will {get_threat(stage-1)}")
                 client.chat_scheduleMessage(post_at=round(float(obj["ts"])-REMINDER_SPACING[stage-1]),
                                         channel=obj["userID"],blocks=reminder_blocks(obj["id"],obj["name"]),
                                         text=f"Have you finished {obj["name"]}")
