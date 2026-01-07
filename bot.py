@@ -196,7 +196,11 @@ def reminder_blocks(id,name):
     res = res.replace("___placeNameHere___",name)
     return res
 
-
+def get_threat(index: int) -> str:
+    if random.randint(0,1) and False:
+        pass
+    else:
+        return THREAT[index]
 
 @app.action("submit_button-action")
 def action_submit(ack, body, logger,client):
@@ -299,9 +303,9 @@ def action_lazy_person(ack,body,client,say):
                 say(LAST_THREAT)
             else:
                 say("You lazy fuck. You procrastinated responding to a productivity bot. "+LAST_THREAT)
-                if(x_integration.ready()):
+                if(x_integration.isReady()):
                     x_integration.post(random.choice(gemini_integration.get_embarassing_message(obj["name" \
-                    ""]).split(";")))
+                    ""]).split(";"))) #type: ignore
         else:
             stage = 0
             for space in REMINDER_SPACING:
