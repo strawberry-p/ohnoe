@@ -59,13 +59,16 @@ THREAT = [["just kill you.", "let you sleep with the fishes.", "make you sleep f
 LAST_THREAT = "You will not see your Blåhaj for the rest of your life. I am giving it back in an hour."
 lastSubmitName = ""
 submitCounter = 0
-app = App(token=os.environ.get("SLACK_BOT_TOKEN"),signing_secret=os.environ.get("SLACK_SIGNING_SECRET"))
+print("x_interaction flask server up")
+app = App(ignoring_self_events_enabled=False,token=os.environ.get("SLACK_BOT_TOKEN"),signing_secret=os.environ.get("SLACK_SIGNING_SECRET"))
 def dtn() -> float:
     return dt.datetime.now().timestamp()
 
 def add_task(name: str, ts: int | float,userID:str,text:str="Added from the app"):
     obj = scheduled(name,ts, #type:ignore
                     dt.datetime.now().timestamp(),userID,text=text)
+    if "lock" in name:
+        raise ValueError(f"forbidden name {name} in API task with ID {obj["id"]}")
     delta = ts-obj["created"]
     stage = 0
     for space in REMINDER_SPACING:
@@ -294,7 +297,7 @@ def get_threat(index: int) -> str:
 
 
 @app.action("submit_button-action")
-def action_submit(ack, body, logger,client):
+def action_submit(ack, body, logger,client,say):
     global nextDate,nextTime,nextLabel,lastSubmitName,stored,data,submitCounter
     submitCounter += 1
     ack()
@@ -302,7 +305,9 @@ def action_submit(ack, body, logger,client):
     for k in body["state"]["values"]:
         v = body["state"]["values"][k]
         get_submitted_data(v)
-    
+    if "lock" in nextLabel:
+        say("That's not a very good name. Try again.")
+        raise ValueError(f"forbidden name {nextLabel} in slack task")
     print((nextDate,nextTime,nextLabel))
     splitDate = [int(x) for x in nextDate.split("-")]
     splitTime = [int(x) for x in nextTime.split(":")]
