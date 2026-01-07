@@ -36,10 +36,14 @@ import io.github.kdroidfilter.knotify.builder.sendNotification
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.Parameters
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
@@ -52,6 +56,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
 import kotlinx.serialization.json.Json
 import tech.tarakoshka.ohnoe_desktop.theme.AppTheme
+import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.LocalDateTime
@@ -60,6 +65,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.WeakHashMap
+import javax.imageio.ImageIO
 import kotlin.math.max
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
@@ -125,15 +131,47 @@ fun main() = application {
                                 factory = { panel },
                                 modifier = Modifier.fillMaxWidth().aspectRatio(1.25f)
                             )
+                            var error by remember { mutableStateOf<String?>(null) }
                             val scope = rememberCoroutineScope()
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterHorizontally), modifier = Modifier.fillMaxWidth()) {
                                 Button(onClick = {
                                     scope.launch {
                                         loading = true
-                                        delay(2000L)
+                                        error = null
+                                        val stream = ByteArrayOutputStream()
+                                        ImageIO.write(webcam.image, "jpg", stream)
+                                        val imageBytes = stream.toByteArray()
+                                        try {
+                                            val response = httpClient.post("http://localhost:8080/is_done") {
+                                                setBody(
+                                                    MultiPartFormDataContent(
+                                                        formData {
+                                                            append("task", reminders.find { it.id == confirmationFor }!!.text)
+                                                            append("image.jpg", imageBytes, Headers.build {
+                                                                append(HttpHeaders.ContentType, "image/jpeg")
+                                                                append(HttpHeaders.ContentDisposition, "filename=\"image.jpg\"")
+                                                            })
+                                                        }
+                                                    ))
+                                            }
+                                            when (response.bodyAsText()) {
+                                                "Task done!" -> {
+                                                    repository.complete(id)
+                                                    sendNotification(
+                                                        title = "Ohnoe! Task completed",
+                                                        message = reminders.find { it.id == confirmationFor }!!.text,
+                                                    )
+                                                    confirmationFor = null
+                                                }
+                                                else -> {
+                                                    error = "Task not done"
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            "Error: ${e.message}"
+                                        }
                                         loading = false
                                     }
-//                                repository.complete(id)
                                 }, shape = RectangleShape) {
                                     Text("Confirm")
                                 }
@@ -141,6 +179,7 @@ fun main() = application {
                                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 }
                             }
+                            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                         }
                     }
                 }
@@ -543,7 +582,7 @@ fun main() = application {
     }
     popupContent?.let {
         val windowState = rememberWindowState(placement = WindowPlacement.Fullscreen)
-        Window(state = windowState, onCloseRequest = { }, title = "ATTENTION!") {
+        Window(state = windowState, onCloseRequest = { windowJob?.cancel(); windowJob = null; popupContent = null; }, title = "ATTENTION!") {
             it()
         }
     }
