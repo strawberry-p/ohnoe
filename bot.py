@@ -11,6 +11,21 @@ flaskApp = Flask(__name__)
 def runApp():
     flaskApp.run("0.0.0.0", 8080)
 
+@flaskApp.route("/is_done", methods=["POST"])
+def is_done():
+    task = request.form.get()
+    image = request.files.get("image.jpg")
+    image_bytes = image.read()
+    match gemini_integration.check_image(image_bytes, task):
+        case -1:
+            return 'Unrelated image.'
+        case 0:
+            return 'Task not done.'
+        case 1:
+            return 'Task done!'
+
+
+
 threading.Thread(target=runApp).start()
 
 dotenv.load_dotenv()
