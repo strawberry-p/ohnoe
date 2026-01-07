@@ -3,6 +3,8 @@ import dotenv, json
 import datetime as dt
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+import gemini_integration, x_integration
+import random
 dotenv.load_dotenv()
 DATA_FILE = "bot-data.json"
 REMINDER_SPACING = [1800,3600*2,3600*6]
@@ -297,6 +299,9 @@ def action_lazy_person(ack,body,client,say):
                 say(LAST_THREAT)
             else:
                 say("You lazy fuck. You procrastinated responding to a productivity bot. "+LAST_THREAT)
+                if(x_integration.ready()):
+                    x_integration.post(random.choice(gemini_integration.get_embarassing_message(obj["name" \
+                    ""]).split(";")))
         else:
             stage = 0
             for space in REMINDER_SPACING:
