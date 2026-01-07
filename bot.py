@@ -242,6 +242,7 @@ def add_task(name: str, ts: int | float,userID:str,text:str="Added from the app"
                 print(_)
                 print(stored)
                 print(data)
+    return obj["id"]
 
 @app.action("submit_button-action")
 def action_submit(ack, body, logger,client):
@@ -394,8 +395,7 @@ def action_tasklabel(ack,body,logger):
     ack()
     logger.info(body)
 
-
-if __name__ == "__main__":
+def main():
     #app.start(port=int(os.environ.get("PORT", 3000)))
     try:
         SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
@@ -409,3 +409,5 @@ if __name__ == "__main__":
         print(data)
         with open(DATA_FILE,"w") as file:
             json.dump(stored,file)
+if __name__ == "__main__":
+    main()
