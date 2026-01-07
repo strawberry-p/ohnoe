@@ -7,6 +7,7 @@ import gemini_integration, x_integration
 import random, threading
 from flask import Flask, request
 flaskApp = Flask(__name__)
+x_integration.init(flaskApp)
 
 def runApp():
     flaskApp.run("0.0.0.0", 8080)
