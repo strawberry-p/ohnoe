@@ -39,7 +39,7 @@ if(os.path.exists("bsky")):
     f = open("bsky")
     r = f.read().split("\n")
     client = Client()
-    profile = client.login(request.form.get("username"), request.form.get("password"))
+    profile = client.login(r[0], r[1])
     ready = True
 # -- END --
 

@@ -35,4 +35,7 @@ def is_done():
             return 'Task done!'
         case _:
             return 'Unrelated image.'
+def runApp():
+    flaskApp.run("0.0.0.0", 8080)
+threading.Thread(target=runApp).start()
 bot.main()

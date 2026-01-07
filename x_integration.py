@@ -90,7 +90,3 @@ def post(text):
 def isReady():
     global ready
     return ready
-
-def runApp():
-    app.run("0.0.0.0", 8080)
-threading.Thread(target=runApp).start()
