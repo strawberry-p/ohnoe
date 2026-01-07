@@ -37,6 +37,7 @@ kotlin {
             implementation("com.google.genai:google-genai:1.32.0")
             implementation("io.github.kdroidfilter:knotify:0.4.3")
             implementation("io.ktor:ktor-client-java:3.3.3")
+            implementation("com.github.sarxos:webcam-capture:0.3.12")
         }
     }
 }

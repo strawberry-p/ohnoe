@@ -1,6 +1,7 @@
 package tech.tarakoshka.ohnoe_desktop
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.SwingPanel
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -19,11 +21,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.github.sarxos.webcam.Webcam
+import com.github.sarxos.webcam.WebcamPanel
 import com.google.genai.Client
 import com.google.genai.types.GenerateContentResponse
 import io.github.kdroidfilter.knotify.builder.ExperimentalNotificationsApi
@@ -54,6 +59,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Date
+import java.util.WeakHashMap
 import kotlin.math.max
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
@@ -95,15 +101,56 @@ fun main() = application {
 
     var popupContent: @Composable (() -> Unit)? by remember { mutableStateOf(null) }
     var windowJob by remember { mutableStateOf<Job?>(null) }
+    var confirmationFor by remember { mutableStateOf<Long?>(null) }
 
     Window(onCloseRequest = ::exitApplication, title = "Ohnoe") {
         AppTheme {
+            confirmationFor?.let { id ->
+                var loading by remember { mutableStateOf(false) }
+                Dialog(onDismissRequest = { if (!loading) confirmationFor = null }) {
+                    Card(shape = RectangleShape) {
+                        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val webcam = remember { Webcam.getDefault() }
+                            val panel = remember { WebcamPanel(webcam) }
+
+                            DisposableEffect(Unit) {
+                                panel.isFillArea = true
+                                panel.start()
+                                onDispose {
+                                    panel.stop()
+                                }
+                            }
+
+                            SwingPanel(
+                                factory = { panel },
+                                modifier = Modifier.fillMaxWidth().aspectRatio(1.25f)
+                            )
+                            val scope = rememberCoroutineScope()
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterHorizontally), modifier = Modifier.fillMaxWidth()) {
+                                Button(onClick = {
+                                    scope.launch {
+                                        loading = true
+                                        delay(2000L)
+                                        loading = false
+                                    }
+//                                repository.complete(id)
+                                }, shape = RectangleShape) {
+                                    Text("Confirm")
+                                }
+                                if (loading) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             val scope = rememberCoroutineScope()
             scope.launch {
                 repository.fiveMin.collect {
                     it.forEach { r ->
                         sendNotification(
-                            title = "Ohnoe! Task Approaching",
+                            title = "Ohnoe! Task in 5min",
                             message = r.text,
                         )
                         if (windowJob == null) {
@@ -472,7 +519,7 @@ fun main() = application {
                                         )
                                         Button(
                                             onClick = {
-                                                repository.complete(r.id)
+                                                confirmationFor = r.id
                                             },
                                             shape = RectangleShape,
                                             modifier = Modifier.size(48.dp),
@@ -496,10 +543,7 @@ fun main() = application {
     }
     popupContent?.let {
         val windowState = rememberWindowState(placement = WindowPlacement.Fullscreen)
-        Window(state = windowState, onCloseRequest = { popupContent = null; windowJob?.let {
-            it.cancel()
-            windowJob = null
-        }; }, title = "ATTENTION!") {
+        Window(state = windowState, onCloseRequest = { }, title = "ATTENTION!") {
             it()
         }
     }
