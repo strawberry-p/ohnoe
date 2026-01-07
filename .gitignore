@@ -1,5 +1,6 @@
 .env
 bot-data.json
+bot-update.json
 auth_stuff
 app_auth
 __pycache__
