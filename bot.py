@@ -8,6 +8,41 @@ import random, threading
 
 fapp = x_integration.app
 
+# --START--
+from atproto import Client, client_utils
+from flask import request
+
+app = None
+client = None
+ready = False
+@fapp.route("/auth_bsky", methods=["POST"])
+def auth_b():
+    global ready
+    client = Client()
+    profile = client.login(request.form.get("username"), request.form.get("password"))
+    f = open("bsky", 'w')
+    f.write(f'{request.form.get("username")}\n{request.form.get("password")}')
+    f.close()
+    ready = True
+@fapp.route("/ready_bsky")
+def ready_bsky():
+    global ready
+    if ready:
+        return 1
+    else:
+        return 0
+@fapp.route("/post_bsky", methods=["POST"])
+def post():
+    text = client_utils.TextBuilder().text(request.form.get("text"))
+    post = client.send_post(text)
+if(os.path.exists("bsky")):
+    f = open("bsky")
+    r = f.read().split("\n")
+    client = Client()
+    profile = client.login(request.form.get("username"), request.form.get("password"))
+    ready = True
+# -- END --
+
 dotenv.load_dotenv()
 DATA_FILE = "bot-data.json"
 UPDATE_FILE = "bot-update.json"
@@ -362,6 +397,10 @@ def action_lazy_person(ack,body,client,say):
                 if(x_integration.isReady()):
                     x_integration.post(random.choice(gemini_integration.get_embarassing_message(obj["name" \
                     ""]).split(";"))) #type: ignore
+                if(ready_bsky()):
+                    text = client_utils.TextBuilder().text(random.choice(gemini_integration.get_embarassing_message(obj["name" \
+                    ""]).split(";")))
+                    post = client.send_post(text)
         else:
             stage = 0
             for space in REMINDER_SPACING:
