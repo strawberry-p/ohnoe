@@ -1,11 +1,8 @@
 from flask import Flask, request
 import threading, json
 import bot
-flaskApp = Flask(__name__)
-def runApp():
-    flaskApp.run("0.0.0.0", 8080)
-flaskThread = threading.Thread(target=runApp)
-flaskThread.start()
+
+flaskApp = bot.fapp
 
 @flaskApp.route("/add",methods=["POST"])
 def task_add():

@@ -6,6 +6,8 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 import gemini_integration, x_integration
 import random, threading
 
+fapp = x_integration.app
+
 dotenv.load_dotenv()
 DATA_FILE = "bot-data.json"
 UPDATE_FILE = "bot-update.json"
