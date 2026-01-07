@@ -59,6 +59,7 @@ import tech.tarakoshka.ohnoe_desktop.theme.AppTheme
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -109,7 +110,9 @@ fun main() = application {
     var windowJob by remember { mutableStateOf<Job?>(null) }
     var confirmationFor by remember { mutableStateOf<Long?>(null) }
 
-    Window(onCloseRequest = ::exitApplication, title = "Ohnoe") {
+    val mainWState = rememberWindowState()
+
+    Window(onCloseRequest = ::exitApplication, title = "Ohnoe", state = mainWState, alwaysOnTop = true) {
         AppTheme {
             confirmationFor?.let { id ->
                 var loading by remember { mutableStateOf(false) }
@@ -189,7 +192,7 @@ fun main() = application {
                 repository.fiveMin.collect {
                     it.forEach { r ->
                         sendNotification(
-                            title = "Ohnoe! Task in 5min",
+                            title = "Ohnoe! Task in ${(r.time - Clock.System.now().toEpochMilliseconds())/1000/60}min",
                             message = r.text,
                         )
                         if (windowJob == null) {
@@ -204,7 +207,20 @@ fun main() = application {
                                     }
                                     val secondsLeft by timer.collectAsState(0L)
                                     Box(modifier = Modifier.fillMaxSize().background(Color.Red).padding(32.dp)) {
-                                        Text("WARNING!\nYour computer has been blocked for not completing \"${r.text}\".\nDO THE TASK NOW TO AVOID DATA LOSS.\n\nTime left:\n${max(secondsLeft, 0L)} seconds", fontSize = 48.sp, fontFamily = FontFamily.Monospace)
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
+                                            Text("WARNING!\nYour computer has been blocked for not completing \"${r.text}\".\nDO THE TASK NOW TO AVOID DATA LOSS.\n\nTime left:\n${max(secondsLeft, 0L)} seconds", fontSize = 48.sp, fontFamily = FontFamily.Monospace)
+                                            Button(onClick = {
+                                                confirmationFor = r.id
+                                                popupContent = null
+                                            }, shape = RectangleShape, colors = ButtonColors(
+                                                containerColor = Color.Red,
+                                                contentColor = Color.White,
+                                                disabledContainerColor = Color.Red,
+                                                disabledContentColor = Color.White
+                                            )) {
+                                                Text("CONFIRM TASK DONE")
+                                            }
+                                        }
                                     }
                                 }
                                 windowJob = null
@@ -525,7 +541,7 @@ fun main() = application {
                                 )
                                 Text(
                                     text = LocalDateTime.ofInstant(
-                                        java.time.Instant.ofEpochMilli(r.time), ZoneOffset.systemDefault()
+                                        Instant.ofEpochMilli(r.time), ZoneOffset.systemDefault()
                                     ).format(
                                         DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
                                     ).formatDate(), style = MaterialTheme.typography.bodyMedium
@@ -551,7 +567,7 @@ fun main() = application {
                                     ) {
                                         Text(
                                             textAlign = TextAlign.End, text = LocalDateTime.ofInstant(
-                                                java.time.Instant.ofEpochMilli(r.time), ZoneOffset.systemDefault()
+                                                Instant.ofEpochMilli(r.time), ZoneOffset.systemDefault()
                                             ).format(
                                                 DateTimeFormatter.ofPattern("dd/MM/yyyy\nHH:mm")
                                             ).formatDate(), style = MaterialTheme.typography.bodyMedium

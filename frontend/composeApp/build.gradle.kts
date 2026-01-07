@@ -10,7 +10,7 @@ plugins {
 
 kotlin {
     jvm()
-    
+
     sourceSets {
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -36,7 +36,7 @@ kotlin {
             implementation("app.cash.sqldelight:sqlite-driver:2.1.0")
             implementation("com.google.genai:google-genai:1.32.0")
             implementation("io.github.kdroidfilter:knotify:0.4.3")
-            implementation("io.ktor:ktor-client-java:3.3.3")
+            implementation("io.ktor:ktor-client-apache5:3.3.3")
             implementation("com.github.sarxos:webcam-capture:0.3.12")
         }
     }
@@ -46,10 +46,18 @@ compose.desktop {
     application {
         mainClass = "tech.tarakoshka.ohnoe_desktop.MainKt"
 
+        buildTypes.release.proguard {
+            isEnabled = false
+        }
+
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "tech.tarakoshka.ohnoe_desktop"
             packageVersion = "1.0.0"
+
+            modules(
+                "java.sql", "java.desktop", "java.logging", "java.net.http", "jdk.crypto.ec"
+            )
         }
     }
 }
