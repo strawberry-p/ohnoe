@@ -1,6 +1,7 @@
 package tech.tarakoshka.ohnoe_desktop
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,10 +41,12 @@ sealed interface Data<out T> {
 fun main() = application {
     val driverFactory = DatabaseDriverFactory()
     val repository = remember { ReminderRepository(driverFactory) }
+    val integrationRepo = remember { IntegrationRepository(driverFactory) }
 
     val client: Client? = Client.builder().apiKey(System.getenv("GEMINI_TOKEN")).build()
 
     val reminders by repository.reminders.collectAsState(initial = emptyList())
+    val integrations by integrationRepo.integrations.collectAsState(initial = emptyList())
 
     Window(onCloseRequest = ::exitApplication, title = "Ohnoe") {
         AppTheme {
@@ -51,7 +54,16 @@ fun main() = application {
             scope.launch {
                 repository.notify.collect {
                     it.forEach { r ->
-                        println(r)
+                        sendNotification(
+                            title = "Ohnoe! Task Approaching",
+                            message = r.text,
+                        )
+                    }
+                }
+            }
+            scope.launch {
+                repository.missed.collect {
+                    it.forEach { r ->
                         sendNotification(
                             title = "Task Failed",
                             message = r.messages.split(";").random(),
@@ -59,6 +71,7 @@ fun main() = application {
                     }
                 }
             }
+            var settingsOpen by remember { mutableStateOf(false) }
             Surface(modifier = Modifier.fillMaxSize()) {
                 Row(modifier = Modifier.padding(horizontal = 16.dp)) {
                     var text by remember { mutableStateOf("") }
@@ -160,6 +173,9 @@ fun main() = application {
                         }
                         item {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                                OutlinedButton(onClick = { settingsOpen = !settingsOpen }, shape = RectangleShape) {
+                                    Text("Settings")
+                                }
                                 Button(enabled = dateValidation.first && date.length == 8 && timeValidation.first && time.length == 4 && text.isNotBlank() && state !is Data.Loading, onClick = {
                                     scope.launch(Dispatchers.IO) {
                                         state = Data.Loading
@@ -182,7 +198,7 @@ fun main() = application {
                                             }
                                         }
                                     }
-                                }, shape = RectangleShape) {
+                                }, shape = RectangleShape, modifier = Modifier.weight(1f)) {
                                     Text("Add reminder")
                                 }
                                 when (state) {
@@ -190,6 +206,22 @@ fun main() = application {
                                     Data.Initial -> {}
                                     Data.Loading -> CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary)
                                     is Data.Success<*> -> {}
+                                }
+                            }
+                        }
+                        if (settingsOpen) {
+                            item {
+                                Column {
+                                    integrations.forEach { i ->
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                                            integrationRepo.toggle(i.name)
+                                        }).padding(start = 16.dp)) {
+                                            Text(i.name, modifier = Modifier.weight(1f))
+                                            Checkbox(checked = i.active != 0L, onCheckedChange = {
+                                                integrationRepo.toggle(i.name)
+                                            })
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -204,30 +236,27 @@ fun main() = application {
                                 Row {
                                     Text(if (doneExpanded) "Close" else "See completed", modifier = Modifier.padding(16.dp))
                                 }
-                                AnimatedVisibility(doneExpanded) {
-                                    Column {
-                                        reminders.filter { it.completed != 0L }.forEach { r ->
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(bottom = 4.dp).alpha(0.7f),
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(text = r.text, style = MaterialTheme.typography.bodyLarge)
-                                                Text(
-                                                    text = LocalDateTime.ofInstant(
-                                                        java.time.Instant.ofEpochMilli(r.time), ZoneOffset.systemDefault()
-                                                    ).format(
-                                                        DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-                                                    ), style = MaterialTheme.typography.bodyMedium
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
-                        items(reminders.filter { it.completed == 0L }) { r ->
+                        if (doneExpanded)
+                            items(reminders.filter { it.completed != 0L }, key = { it.id }) { r ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).alpha(0.7f).animateItem(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = r.text, style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        text = LocalDateTime.ofInstant(
+                                            java.time.Instant.ofEpochMilli(r.time), ZoneOffset.systemDefault()
+                                        ).format(
+                                            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                                        ), style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                        items(reminders.filter { it.completed == 0L }, key = { it.id }) { r ->
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).animateItem(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {

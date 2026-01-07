@@ -26,6 +26,13 @@ class ReminderRepository(driverFactory: DatabaseDriverFactory) {
         }
     }
 
+    val missed = flow {
+        while (true) {
+            emit(getForNotificationSec(1))
+            delay(1.seconds)
+        }
+    }
+
     fun addReminder(text: String, messages: String, timestamp: Long) {
         queries.insertReminder(text, messages, timestamp)
     }
@@ -36,8 +43,18 @@ class ReminderRepository(driverFactory: DatabaseDriverFactory) {
         return lst
     }
 
+    suspend fun getForNotificationSec(seconds: Long): List<Reminder> {
+        val lst = queries.getInRange(Clock.System.now().toEpochMilliseconds(), 1000 * seconds).executeAsList()
+        lst.forEach { complete(it.id) }
+        return lst
+    }
+
 
     fun complete(id: Long) {
         queries.completeReminder(id)
+    }
+
+    fun miss(id: Long) {
+        queries
     }
 }
