@@ -25,6 +25,7 @@ class IntegrationRepository(driverFactory: DatabaseDriverFactory) {
         scope.launch {
             if (queries.getAll().executeAsList().isEmpty()) {
                 queries.add("Twitter")
+                queries.add("Bluesky")
             }
         }
     }
