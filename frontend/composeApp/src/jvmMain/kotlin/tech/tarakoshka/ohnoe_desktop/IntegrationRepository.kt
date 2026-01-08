@@ -26,6 +26,7 @@ class IntegrationRepository(driverFactory: DatabaseDriverFactory) {
             if (queries.getAll().executeAsList().isEmpty()) {
                 queries.add("Twitter")
                 queries.add("Bluesky")
+                queries.add("Slack")
             }
         }
     }

@@ -224,14 +224,20 @@ fun main() = application {
                                 }min",
                                 message = r.text,
                             )
-                            threats[r.id]?.cancel()
-                            threats[r.id] = launch {
-                                val rand = Random.nextLong(5L..14L)
-                                delay(Duration.ofSeconds(rand))
-                                httpClient.post("http://localhost:5000/send-slack") {
-                                    setBody(mapOf("channel" to "C0A6V043Y8N", "index" to (rand / 5).toString()))
-                                    contentType(ContentType.Application.Json)
+                            val lst = integrations.filter { it.active == 1L }.map { it.name }
+                            if (lst.contains("Slack")) {
+                                threats[r.id]?.cancel()
+                                threats[r.id] = launch {
+                                    val rand = Random.nextLong(5L..14L)
+                                    delay(Duration.ofSeconds(rand))
+                                    httpClient.post("http://localhost:5000/send-slack") {
+                                        setBody(mapOf("channel" to "C0A6V043Y8N", "index" to (rand / 5).toString()))
+                                        contentType(ContentType.Application.Json)
+                                    }
                                 }
+                            } else {
+                                threats.values.forEach { it.cancel() }
+                                threats.clear()
                             }
                             if (windowJob == null) {
                                 windowJob = launch {
@@ -564,6 +570,7 @@ fun main() = application {
                                                                         }.also { print(it.bodyAsText()) }.status.isSuccess()) {
                                                                             integrationRepo.toggle(i.name)
                                                                         }
+                                                                        else -> integrationRepo.toggle(i.name)
                                                                     }
                                                                 } catch (_: Throwable) {
                                                                 }
