@@ -25,7 +25,7 @@ def task_add():
         queueJson["q"].append({"name":name,"ts":float(ts),"userID":userID,"delete":deleteBool}) #type: ignore
         with open(bot.UPDATE_FILE,"w") as file:
             json.dump(queueJson,file)
-        bot.app.client.chat_postMessage(channel=MSG_UPDATE_CHANNEL,text=f"adding task: {name}")
+        bot.app.client.chat_postMessage(channel=MSG_UPDATE_CHANNEL,text=f"updating task: {name}")
         success = True
     finally:
         return str({"ok":success,"id":str(userID)+"_"+str(name)+"_"+str(ts)})

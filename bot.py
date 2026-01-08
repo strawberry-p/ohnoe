@@ -124,7 +124,9 @@ def complete_task(i:dict):
     obj,objIndex = find_by_id(remID)
     if "sch" in obj:
         print(f"deleted scheduled message for {i["name"]}")
-        app.client.chat_deleteScheduledMessage(channel=obj["userID"],scheduled_message_id=obj["sch"])
+        delRes = app.client.chat_deleteScheduledMessage(channel=obj["userID"],scheduled_message_id=obj["sch"])
+        print(delRes)
+        app.client.chat_postMessage(channel=i["userID"],text=f"API: Completed {i["name"]}")
     else:
         print(f"no sch entry for {i["name"]} target ts {obj["ts"]}")
     print(f"deleted entry {data.pop(objIndex)}")
