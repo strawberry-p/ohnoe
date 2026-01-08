@@ -64,6 +64,9 @@ app = App(ignoring_self_events_enabled=False,token=os.environ.get("SLACK_BOT_TOK
 def dtn() -> float:
     return dt.datetime.now().timestamp()
 
+def scheduled(name,ts,created,userID,j=0,text=""):
+    return {"name":name,"id": userID+"_"+name+"_"+str(ts), "ts": ts,"userID":userID,"created":created,"iter":j,"text":text,"sent_last_reminder":False}
+
 def add_task(name: str, ts: int | float,userID:str,text:str="Added from the app"):
     obj = scheduled(name,ts, #type:ignore
                     dt.datetime.now().timestamp(),userID,text=text)
@@ -176,8 +179,6 @@ class Scheduled:
         return {"name":self.name,"id": self.id, "ts": self.ts,"userID":self.userID,"created":self.created,"iter":self.iter,"text":self.text}
         
 
-def scheduled(name,ts,created,userID,j=0,text=""):
-    return {"name":name,"id": userID+"_"+name+"_"+str(ts), "ts": ts,"userID":userID,"created":created,"iter":j,"text":text,"sent_last_reminder":False}
 
 def get_submitted_data(inp: dict):
     global nextDate,nextTime,nextLabel

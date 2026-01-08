@@ -44,6 +44,11 @@ def is_done():
             return 'Task done!'
         case _:
             return 'Unrelated image.'
+
+@flaskApp.route("/threat<tier>",methods=["GET"])
+def send_thread(tier):
+    return bot.get_threat(int(tier)) #type: ignore
+
 def runApp():
     flaskApp.run("0.0.0.0", 8080)
 threading.Thread(target=runApp).start()
