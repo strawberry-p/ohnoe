@@ -39,11 +39,11 @@ fun AppTypography() = Typography(
     titleLarge = baseline.titleLarge.copy(fontFamily = displayFontFamily()),
     titleMedium = baseline.titleMedium.copy(fontFamily = displayFontFamily()),
     titleSmall = baseline.titleSmall.copy(fontFamily = displayFontFamily()),
-    bodyLarge = baseline.bodyLarge.copy(fontFamily = bodyFontFamily()),
-    bodyMedium = baseline.bodyMedium.copy(fontFamily = bodyFontFamily()),
-    bodySmall = baseline.bodySmall.copy(fontFamily = bodyFontFamily()),
-    labelLarge = baseline.labelLarge.copy(fontFamily = bodyFontFamily()),
-    labelMedium = baseline.labelMedium.copy(fontFamily = bodyFontFamily()),
-    labelSmall = baseline.labelSmall.copy(fontFamily = bodyFontFamily()),
+    bodyLarge = baseline.bodyLarge.copy(fontFamily = bodyFontFamily(), fontSize = 18.sp),
+    bodyMedium = baseline.bodyMedium.copy(fontFamily = bodyFontFamily(), fontSize = 18.sp),
+    bodySmall = baseline.bodySmall.copy(fontFamily = bodyFontFamily(), fontSize = 18.sp),
+    labelLarge = baseline.labelLarge.copy(fontFamily = bodyFontFamily(), fontSize = 18.sp),
+    labelMedium = baseline.labelMedium.copy(fontFamily = bodyFontFamily(), fontSize = 18.sp),
+    labelSmall = baseline.labelSmall.copy(fontFamily = bodyFontFamily(), fontSize = 18.sp),
 )
 

@@ -32,7 +32,9 @@ kotlin {
             implementation(libs.kotlin.test)
         }
         jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
+            implementation(compose.desktop.macos_arm64)
+            implementation(compose.desktop.windows_x64)
+            implementation(compose.desktop.linux_x64)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation("app.cash.sqldelight:sqlite-driver:2.1.0")
             implementation("com.google.genai:google-genai:1.32.0")

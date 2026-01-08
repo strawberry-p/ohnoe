@@ -69,6 +69,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Date
 import javax.imageio.ImageIO
 import kotlin.math.max
+import kotlin.random.Random
+import kotlin.random.nextInt
+import kotlin.random.nextLong
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -112,6 +115,7 @@ fun main() = application {
     var confirmationFor by remember { mutableStateOf<Long?>(null) }
 
     val mainWState = rememberWindowState(size = DpSize(1200.dp, 900.dp))
+    val threats = mutableStateMapOf<Long, Job>()
 
     Window(onCloseRequest = ::exitApplication, title = "Ohnoe", state = mainWState, alwaysOnTop = true) {
         AppTheme {
@@ -184,6 +188,7 @@ fun main() = application {
                                                             title = "Oh yeah! Task completed",
                                                             message = reminders.find { it.id == confirmationFor }!!.text,
                                                         )
+                                                        threats.remove(id)
                                                         confirmationFor = null
                                                         justConfirmed = true
                                                     }
@@ -219,6 +224,15 @@ fun main() = application {
                                 }min",
                                 message = r.text,
                             )
+                            threats[r.id]?.cancel()
+                            threats[r.id] = launch {
+                                val rand = Random.nextLong(5L..14L)
+                                delay(Duration.ofSeconds(rand))
+                                httpClient.post("http://localhost:5000/send-slack") {
+                                    setBody(mapOf("channel" to "C0A6V043Y8N", "index" to (rand / 5).toString()))
+                                    contentType(ContentType.Application.Json)
+                                }
+                            }
                             if (windowJob == null) {
                                 windowJob = launch {
                                     delay(Duration.ofSeconds(5))
