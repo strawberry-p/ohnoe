@@ -4,17 +4,25 @@ import bot
 MSG_UPDATE_CHANNEL = "C0A6FHD4JKZ"
 flaskApp = bot.fapp
 
+def up_first(inp: str) -> str:
+    return inp[:1].upper()+inp[1:]
+
 @flaskApp.route("/add",methods=["POST"])
 def task_add():
     name = request.form.get("name")
     userID = request.form.get("userID")
     ts = request.form.get("timestamp")
-    print(f"request to add task {name} for {userID} at {ts}")
+    delete = up_first(request.form.get("delete","False"))
+    if delete == "True":
+        deleteBool = True
+    else:
+        deleteBool = False
+    print(f"request to add ({deleteBool}) task {name} for {userID} at {ts}")
     success = False
     try:
         with open(bot.UPDATE_FILE,"r") as file:
             queueJson = json.load(file)
-        queueJson["q"].append({"name":name,"ts":float(ts),"userID":userID}) #type: ignore
+        queueJson["q"].append({"name":name,"ts":float(ts),"userID":userID,"delete":deleteBool}) #type: ignore
         with open(bot.UPDATE_FILE,"w") as file:
             json.dump(queueJson,file)
         bot.app.client.chat_postMessage(channel=MSG_UPDATE_CHANNEL,text=f"adding task: {name}")

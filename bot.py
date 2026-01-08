@@ -79,10 +79,12 @@ def add_task(name: str, ts: int | float,userID:str,text:str="Added from the app"
     print(f"delta {delta} stage {stage}")
     obj["j"] = stage
     if stage > 0:
-        app.client.chat_scheduleMessage(channel=obj["userID"],
+        sch = app.client.chat_scheduleMessage(channel=obj["userID"],
                                         text=f"Have you finished {nextLabel}",
                                         post_at=round(float(obj["ts"]))-REMINDER_SPACING[stage-1],
-                                        blocks=reminder_blocks(obj["id"],nextLabel))
+                                        blocks=reminder_blocks(obj["id"],nextLabel))["scheduled_message_id"]
+        print(f"API scheduling {sch}")
+        obj["sch"] = sch
         data.append(obj)
         stored["data"] = data #saved into file later
     else:
@@ -98,18 +100,51 @@ def add_task(name: str, ts: int | float,userID:str,text:str="Added from the app"
                 print(data)
     return obj["id"]
 
+def find_by_id(remID: str) -> tuple[dict,int]:
+    scheduledRes = []
+    for i in data:
+        if i.get("id","-1") == remID:
+            scheduledRes.append(i)
+            objIndex = j
+        j += 1
+    print(f"res length {len(scheduledRes)}")
+    if len(scheduledRes) == 0:
+        obj = {}
+        raise ValueError(f"ID {remID} not found")
+    else:
+        obj = scheduledRes[-1]
+    return (obj,objIndex)
+
+def complete_task(i:dict):
+    remID = i["userID"]+"_"+i["name"]+"_"+str(i["ts"])
+    obj,objIndex = find_by_id(remID)
+    if "sch" in obj:
+        print(f"deleted scheduled message for {i["name"]}")
+        app.client.chat_deleteScheduledMessage(channel=obj["userID"],scheduled_message_id=obj["sch"])
+    else:
+        print(f"no sch entry for {i["name"]} target ts {obj["ts"]}")
+    print(f"deleted entry {data.pop(objIndex)}")
+    stored["data"] = data
+    with open(DATA_FILE,"w") as file:
+        json.dump(stored,file)
+
 def update_from_file():
     res = {}
     try:
         with open(UPDATE_FILE,"x") as file:
             file.write('{"q":[],"rsp_ts":0}') #should error out
+        print(f"{UPDATE_FILE} didn't exist? weird")
         return 0
     except FileExistsError:
-        print(f"{UPDATE_FILE} exists")
         with open(UPDATE_FILE) as file:
             res = json.load(file)
+        print(f"{UPDATE_FILE} exists with {len(res["q"])} unprocessed")
         for i in res['q']: #formatted as {"name":"","ts":0.0,"userID":"U0..."}
-            add_task(i["name"],float(i["ts"]),i["userID"])
+            print(i)
+            if not i.get("delete",False):
+                add_task(i["name"],float(i["ts"]),i["userID"])
+            else:
+                complete_task(i)
         with open(UPDATE_FILE,"w") as file:
             json.dump({"q":[],"rsp_ts":dtn()},file) #clear out the queue
 
@@ -324,10 +359,12 @@ def action_submit(ack, body, logger,client,say):
     obj["j"] = stage
     print(f"delta {delta} stage {stage}")
     if stage > 0:
-        app.client.chat_scheduleMessage(channel=obj["userID"],
+        sch = app.client.chat_scheduleMessage(channel=obj["userID"],
                                         text=f"Have you finished {nextLabel}",
                                         post_at=round(float(obj["ts"]))-REMINDER_SPACING[stage-1],
-                                        blocks=reminder_blocks(obj["id"],nextLabel))
+                                        blocks=reminder_blocks(obj["id"],nextLabel))["scheduled_message_id"]
+        print(f"scheduled {sch}")
+        obj["sch"] = sch
         data.append(obj)
         stored["data"] = data #saved into file later
     else:
@@ -401,13 +438,13 @@ def action_lazy_person(ack,body,client,say):
                 say(LAST_THREAT)
             else:
                 say("You lazy fuck. You procrastinated responding to a productivity bot. "+LAST_THREAT)
-                if(x_integration.isReady()):
-                    x_integration.post(random.choice(gemini_integration.get_embarassing_message(obj["name" \
-                    ""]).split(";"))) #type: ignore
-                if(ready_bsky()):
-                    text = client_utils.TextBuilder().text(random.choice(gemini_integration.get_embarassing_message(obj["name" \
-                    ""]).split(";")))
-                    post = client.send_post(text)
+            if(x_integration.isReady()):
+                x_integration.post(random.choice(gemini_integration.get_embarassing_message(obj["name" \
+                ""]).split(";"))) #type: ignore
+            if(ready_bsky()):
+                text = client_utils.TextBuilder().text(random.choice(gemini_integration.get_embarassing_message(obj["name" \
+                ""]).split(";")))
+                post = client.send_post(text)
         else:
             stage = 0
             for space in REMINDER_SPACING:
@@ -421,14 +458,16 @@ def action_lazy_person(ack,body,client,say):
                 pass
             else:
                 say(f"Get to work, or I will {get_threat(stage-1)}")
-                client.chat_scheduleMessage(post_at=round(float(obj["ts"])-REMINDER_SPACING[stage-1]),
+                sch = client.chat_scheduleMessage(post_at=round(float(obj["ts"])-REMINDER_SPACING[stage-1]),
                                         channel=obj["userID"],blocks=reminder_blocks(obj["id"],obj["name"]),
-                                        text=f"Have you finished {obj["name"]}")
+                                        text=f"Have you finished {obj["name"]}")["scheduled_message_id"]
+                print(f"DM response, scheduling {sch}")
+                data[objIndex]["sch"] = sch #type: ignore
             if stage == 1:
                 data[objIndex]["sent_last_reminder"] = True #type: ignore
-                stored["data"] = data
-                with open(DATA_FILE,"w") as file:
-                    json.dump(stored,file)
+            stored["data"] = data
+            with open(DATA_FILE,"w") as file:
+                json.dump(stored,file)
     else:
         say("Alright then, good job. You're safe... for now")
         print(data.pop(objIndex)) #type: ignore
