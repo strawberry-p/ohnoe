@@ -228,7 +228,7 @@ fun main() = application {
                             if (lst.contains("Slack")) {
                                 threats[r.id]?.cancel()
                                 threats[r.id] = launch {
-                                    val rand = Random.nextLong(5L..14L)
+                                    val rand = Random.nextLong(4L..14L)
                                     delay(Duration.ofSeconds(rand))
                                     httpClient.post("http://localhost:5000/send-slack") {
                                         setBody(mapOf("channel" to "C0A6V043Y8N", "index" to (rand / 5).toString()))
