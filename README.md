@@ -9,10 +9,18 @@ cd ohnoe
 ```
 
 ### Server (on the same machine as desktop)
+both
 ```sh
-export SLACK_BOT_TOKEN="<your-slack-bot-token>"
 source venv/bin/activate
-python just_send_shit.py && python server.py
+export SLACK_BOT_TOKEN="<your-slack-bot-token>"
+```
+then
+```sh
+python just_send_shit.py 
+```
+and
+```sh
+python server.py
 ```
 
 ### Desktop
