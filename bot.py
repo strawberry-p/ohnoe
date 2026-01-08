@@ -150,6 +150,8 @@ def update_from_file():
             if not i.get("delete",False):
                 add_task(i["name"],float(i["ts"]),i["userID"])
             else:
+                print(f"about to complete task. {data}")
+                print(app.client.chat_scheduledMessages_list()["scheduled_messages"])
                 complete_task(i)
         with open(UPDATE_FILE,"w") as file:
             json.dump({"q":[],"rsp_ts":dtn()},file) #clear out the queue
