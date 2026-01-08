@@ -9,5 +9,5 @@ THREAT = [["just kill you.", "let you sleep with the fishes.", "make you sleep f
           "pop your circuit breakers", "log you out of all the websites you use", "make sure both sides of your pillow will be lukewarm tonight."]]
 @app.route("/threat<index>")
 def get_threat(index) -> str:
-    return random.choice(THREAT[index])
+    return random.choice(THREAT[int(index)])
 app.run("0.0.0.0",8081)
