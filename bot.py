@@ -5,7 +5,7 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 import gemini_integration, x_integration
 import random, threading
-
+print("imports loaded")
 fapp = x_integration.app
 
 # --START--
@@ -83,9 +83,9 @@ def add_task(name: str, ts: int | float,userID:str,text:str="Added from the app"
     obj["j"] = stage
     if stage > 0:
         sch = app.client.chat_scheduleMessage(channel=obj["userID"],
-                                        text=f"Have you finished {nextLabel}",
+                                        text=f"Have you finished {name}",
                                         post_at=round(float(obj["ts"]))-REMINDER_SPACING[stage-1],
-                                        blocks=reminder_blocks(obj["id"],nextLabel))["scheduled_message_id"]
+                                        blocks=reminder_blocks(obj["id"],str(name)))["scheduled_message_id"]
         print(f"API scheduling {sch}")
         obj["sch"] = sch
         data.append(obj)
@@ -105,6 +105,7 @@ def add_task(name: str, ts: int | float,userID:str,text:str="Added from the app"
 
 def find_by_id(remID: str) -> tuple[dict,int]:
     scheduledRes = []
+    j = 0
     for i in data:
         if i.get("id","-1") == remID:
             scheduledRes.append(i)
