@@ -11,7 +11,9 @@ cd ohnoe
 ### Server (on the same machine as desktop)
 > on Windows use set instead of export
 ```sh
+python -m venv venv
 source venv/bin/activate
+pip install flask slack_bolt atproto xdk dotenv google-genai 
 export SLACK_BOT_TOKEN="<your-slack-bot-token>"
 python server.py
 ```
